@@ -3,7 +3,7 @@ import torch.nn as nn
 from SingleBlock import *
 
 
-class DecoderLayer:
+class DecoderLayer(nn.Module):
     def __init__(self):
         super(DecoderLayer, self).__init__()
         self.multi_head_attention = MultiHead_Attention()

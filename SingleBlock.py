@@ -18,7 +18,7 @@ class MultiHead_Attention(nn.Module):
         self.W_Q = nn.Linear(embedding_size, d_q * n_heads)
         self.W_K = nn.Linear(embedding_size, d_k * n_heads)
         self.W_V = nn.Linear(embedding_size, d_v * n_heads)
-        self.Linear = nn.Linear(embedding_size, d_v * n_heads)
+        self.Linear = nn.Linear(d_q, embedding_size)
 
     def forward(self, inputs, mask=False, enc_to_dec=None):
         # embedding size : [batch_size,seq_len,embedding_size]
@@ -35,12 +35,14 @@ class MultiHead_Attention(nn.Module):
             v = self.W_V(inputs).view(batch_size, -1, n_heads, d_v).transpose(1, 2)
 
         # 计算 attention_score 注意这边不要直接矩阵转置v,需要转置的维度仅有dv,max_len！
-        kv = k * v.transpose(-1, -2) / math.sqrt(d_k)  # [batch_size, n_heads, seq_len, seq_len]
+        kv = torch.matmul(k, v.transpose(-1, -2)) / math.sqrt(d_k)  # [batch_size, n_heads, seq_len, seq_len]
         if mask:
-            kv += torch.tril(torch.ones_like(kv), -1e9)
-
-        # [batch_size, n_heads, seq_len, dq] => [batch_size, seq_len, embedding_size]
-        return self.Linear(torch.sum(torch.softmax(kv, 2) * q, 2))  # concat&linear
+            masked = torch.triu(torch.ones(kv.shape[2], kv.shape[3], dtype=bool), diagonal=1)  # masked必须指定bool值才能覆盖
+            kv = torch.masked_fill(kv, mask=masked, value=float('-inf'))
+            # print(kv)
+        # [batch_size, n_heads, seq_len, seq_len] => [batch_size, seq_len, embedding_size]
+        concat_n = torch.sum(torch.matmul(torch.softmax(kv, dim=2), q), dim=1)  # [batch_size, seq_len, d_q]
+        return self.Linear(concat_n)  # concat&linear
 
 '''
 input size: [batch_size, seq_len, embedding_size]
@@ -55,9 +57,11 @@ class FeedForward(nn.Module):
         super(FeedForward, self).__init__()
         self.W_1 = nn.Linear(embedding_size, embedding_size * 4, True)
         self.W_2 = nn.Linear(embedding_size * 4, embedding_size, True)
+        self.act_F = nn.ReLU()
 
     def forward(self, pre_out):
-        return self.W_2(nn.ReLU(self.W_1(pre_out)))
+        act_out = self.act_F(self.W_1(pre_out))
+        return self.W_2(act_out)
 
 
 '''

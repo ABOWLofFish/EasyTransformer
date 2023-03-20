@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -153,7 +155,10 @@ class PositionalEncoding(nn.Module):
         """
         x: [seq_len, batch_size, d_model]
         """
+        # print(x.shape)
+        # print(self.pe.shape)
         x = x + self.pe[:x.size(0), :]
+        # print(x.shape)
         return self.dropout(x)
 
 
@@ -186,7 +191,7 @@ class Encoder(nn.Module):
         # 这里我们的 enc_inputs 形状是： [batch_size x source_len]
         # 下面这个代码通过src_emb，进行索引定位，enc_outputs输出形状是[batch_size, src_len, d_model]
         enc_outputs = self.src_emb(enc_inputs)
-
+        # print(enc_outputs.shape)
         # 这里就是位置编码，把两者相加放入到了这个函数里面，从这里可以去看一下位置编码函数的实现；3.
         enc_outputs = self.pos_emb(enc_outputs.transpose(0, 1)).transpose(0, 1)
 
@@ -272,9 +277,13 @@ class Transformer(nn.Module):
         dec_logits = self.projection(dec_outputs)  # dec_logits : [batch_size x tgt_seq_len x tgt_vocab_size]
         return dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
 
+def set_seed(seed: int):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 if __name__ == '__main__':
-
+    set_seed(5)
     # 句子的输入部分，
     sentences = ['ich mochte ein bier P', 'S i want a beer', 'i want a beer E']
 
@@ -300,13 +309,15 @@ if __name__ == '__main__':
     model = Transformer()
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
     enc_inputs, dec_inputs, target_batch = make_batch(sentences)
-    #print(enc_inputs.size())
-    for epoch in range(1):
+    # print(enc_inputs.size())
+    for epoch in range(20):
         optimizer.zero_grad()
         outputs, enc_self_attns, dec_self_attns, dec_enc_attns = model(enc_inputs, dec_inputs)
+        # print(outputs.shape)
+        # print("cls", target_batch.contiguous().view(-1).shape)
         loss = criterion(outputs, target_batch.contiguous().view(-1))
         print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
         loss.backward()

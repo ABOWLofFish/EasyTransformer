@@ -1,14 +1,16 @@
 import torch
 import torch.nn as nn
+from transformer_hyper_param_def import *
 import math
-
 
 '''
 embedding = X_embedding + PE
 return size : [batch_size,max_len,embedding_size]
 '''
+
+
 class PositionalEmbedding(nn.Module):
-    def __init__(self, embedding_size, max_len=5000):
+    def __init__(self, max_len=5000):
         super(PositionalEmbedding, self).__init__()
 
         """
@@ -27,10 +29,11 @@ class PositionalEmbedding(nn.Module):
         pe[:, 0::2] = torch.cos(pos * div)
 
         # [batch_size,max_len,embedding_size]
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         # 参数放入缓冲区，无需更新
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x += self.pe
-        return x
+        x.transpose(1, 2)
+        x += self.pe[:, 0:x.size(1), :]
+        return x  # [batch_size, seq_len, embedding_size]
