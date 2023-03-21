@@ -17,10 +17,13 @@ def load_corpus(path):
     vocab_spa = data_load.vocab.Vocab(train_spa, 0, ['<eos>', '<sos>'])
 
     '''句子组织成model读取的pattern'''
-    output = ['<sos>'+item for item in train_tgt]
-    tgt = [item+'<eos>' for item in train_tgt]
+    outputs = ['<sos> '+item[:-2] for item in train_spa]
+    tgt = [item[:-2]+' <eos>' for item in train_spa]
+    inputs = [line[:-2] for line in train_en]
     sentences = []
-    for tup in zip(train_src, output, tgt):
-        sentences.append([tup[0], tup[1], tup[2]])
+
+    for tup in zip(inputs, outputs, tgt):
+        sentences += [[tup[0], tup[1], tup[2]]]
+
     return vocab_en, vocab_spa, sentences
 
