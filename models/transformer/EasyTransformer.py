@@ -9,7 +9,9 @@ from Embedding import PositionalEmbedding
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
-        self.src_emb = nn.Embedding(src_vocab_size, embedding_size)
+        self.src_emb = nn.Embedding(src_vocab_size, embedding_size, padding_idx=1)
+        nn.init.normal_(self.src_emb.weight, mean=0, std=embedding_size ** -0.5)
+        nn.init.constant_(self.src_emb.weight[1], 0)
         self.pos_embedding = PositionalEmbedding()
         self.layers = nn.ModuleList([EncoderLayer() for layer in range(Nx)])
     '''

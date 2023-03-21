@@ -7,10 +7,11 @@ class Vocab:
         counter = collections.Counter(tokens)
         self.token_freq = sorted(counter.items(), key=lambda x: x[1], reverse=True)
 
-        '''未知标记的索引为0'''
+        '''<unk>索引为0,<pad>索引1'''
         self.unk = 0
+        self.pad = 1
         if reserved_tokens is not None:
-            tokens = ['<unk>']+reserved_tokens
+            tokens = ['<unk>', '<pad>']+reserved_tokens
         tokens += [tur[0] for tur in self.token_freq if tur[1] >= min_freq and tur[0] not in tokens]
         self.unique_tokens = dict()
         self.reversed_unique_tokens = dict()
@@ -18,16 +19,18 @@ class Vocab:
         for i in range(len(tokens)):
             self.unique_tokens[tokens[i]] = i
         self.reversed_unique_tokens = self.unique_tokens.__reversed__()
-        print(len(self.unique_tokens))
+        # print(len(self.unique_tokens))
 
     def __len__(self):
         return len(self.unique_tokens)
 
-    def __getitem__(self, tokens):
+    def to_idx(self, words, maxLen):
         """转换到一个一个的item进行输出"""
-        if not isinstance(tokens, (list, tuple)):
-            return self.unique_tokens.get(tokens, self.unk)
-        return [self.__getitem__(token) for token in tokens]
+        if not isinstance(words, (list, tuple)):
+            return self.unique_tokens.get(words, self.unk)
+        seq = [self.to_idx(token, maxLen) for token in words]
+        return seq + (maxLen - len(seq)) * [self.pad] if len(seq) < maxLen else seq[:maxLen]
+
 
     def to_tokens(self, indices):
         """如果是单个index直接输出，如果是list或者tuple迭代输出"""
