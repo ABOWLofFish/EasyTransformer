@@ -25,7 +25,7 @@ class Vocab:
         return len(self.unique_tokens)
 
     def to_idx(self, words, maxLen):
-        """转换到一个一个的item进行输出"""
+        """list[tokens] to list[idx]"""
         if not isinstance(words, (list, tuple)):
             return self.unique_tokens.get(words, self.unk)
         seq = [self.to_idx(token, maxLen) for token in words]
@@ -33,7 +33,7 @@ class Vocab:
 
 
     def to_tokens(self, indices):
-        """如果是单个index直接输出，如果是list或者tuple迭代输出"""
+        """list[idx] to list[tokens]"""
         if not isinstance(indices, (list, tuple)):
             return self.reversed_unique_tokens[indices]
         return [self.reversed_unique_tokens[index] for index in indices]

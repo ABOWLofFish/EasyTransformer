@@ -3,23 +3,22 @@ import torch.nn as nn
 from transformer_hyper_param_def import *
 import math
 
-'''
-embedding = X_embedding + PE
-return size : [batch_size,max_len,embedding_size]
-'''
-
-
 class PositionalEmbedding(nn.Module):
-    def __init__(self, max_len=5000):
-        super(PositionalEmbedding, self).__init__()
+    """
+    Positional Embedding steps:
+        -> embedding = X_embedding + PE
 
-        """
-        PE = sin((pos*d_model)/1e^{5+2i}) /cos
+    output size : [batch_size,max_len,embedding_size]
+
+    PE = sin((pos*d_model)/1e^{5+2i}) /cos
         可以推出三角函数内部共同计算部分
         common_div  ==> pos * e^{-(2i/d_model * log(1e5)}
                     ==> torch.exp(-log(10000.0)/d_model * pos||pos-1)
         PE.size() = [max_len ,embedding_size]
-        """
+    """
+    def __init__(self, max_len=5000):
+        super(PositionalEmbedding, self).__init__()
+
         pe = torch.zeros(max_len, embedding_size)
         pos = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div = torch.exp(-math.log(1e5 * 1.0) / embedding_size * torch.arange(0, embedding_size, 2).float())
