@@ -16,7 +16,7 @@ class MultiHead_Attention(nn.Module):
 
     *equ size:[batch_size, n_heads, seq,dq]
     concat size :[batch_size, seq, dq]
-    output size :[batch_size, max_len, embedding_size]
+    output size :[batch_size, seq, embedding_size]
     """
     def __init__(self):
         super(MultiHead_Attention, self).__init__()

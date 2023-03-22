@@ -27,7 +27,7 @@ class Encoder(nn.Module):
         for layer in self.layers:
             output = layer.forward(inputs)
             inputs = output
-        return output
+        return inputs
 
 class Decoder(nn.Module):
     """
@@ -38,18 +38,23 @@ class Decoder(nn.Module):
     """
     def __init__(self):
         super(Decoder, self).__init__()
-        self.src_emb = nn.Embedding(tgt_vocab_size, embedding_size)
+        self.tgt_emb_weight = nn.Parameter(torch.empty(tgt_vocab_size, embedding_size))     # Weight Tying
         self.pos_embedding = PositionalEmbedding()
         self.encoder_out = Encoder()
         self.layers = nn.ModuleList([DecoderLayer() for layer in range(Nx)])
 
     def forward(self, dec_input, enc_to_dec):
-        raw = self.src_emb(dec_input)
+        nn.init.normal_(self.tgt_emb_weight, mean=0, std=embedding_size ** -0.5)
+        nn.init.constant_(self.tgt_emb_weight[1], 0)
+        emb = nn.Embedding(tgt_vocab_size, embedding_size, padding_idx=1, _weight=self.tgt_emb_weight)
+        raw = emb(dec_input)
         inputs = self.pos_embedding.forward(raw)
         for layer in self.layers:
             output = layer.forward(inputs, enc_to_dec)
             inputs = output
-        return output
+        projection = torch.nn.Linear(embedding_size, tgt_vocab_size)
+        projection.weight = nn.Parameter(self.tgt_emb_weight)    # Weight Tying
+        return projection(inputs)
 
 
 
@@ -62,15 +67,11 @@ class EasyTransformer(nn.Module):
         super(EasyTransformer, self).__init__()
         self.encoder = Encoder()
         self.decoder = Decoder()
-        self.prediction = nn.Linear(embedding_size, tgt_vocab_size, False)  # output_size: [batch_size, seq_len, tgt_vocab_size]
 
     def forward(self, enc_input, dec_input):
         # [batch_size, seq_len, embedding]
         enc_to_dec = self.encoder.forward(enc_input)
         dec_out = self.decoder.forward(dec_input, enc_to_dec)
 
-        # [batch_size, seq_len, tgt_vocab_size] ==> [seq_len,tgt_vocab_size]
-        proj_out = self.prediction(dec_out)
-
-        return torch.softmax(proj_out.view(-1, tgt_vocab_size), 1)
+        return torch.softmax(dec_out.view(-1, tgt_vocab_size), 1)
 

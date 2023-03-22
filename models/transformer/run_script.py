@@ -1,11 +1,11 @@
 import random
-
-from EasyTransformer import EasyTransformer
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import data_load.load_datas
+from models.transformer.EasyTransformer import EasyTransformer
+
 
 def set_vocab_size():
     return len(src_vocab), len(tgt_vocab)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     ''' def model,criterion,optimizer '''
     model = EasyTransformer()
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     ''' begin training '''
@@ -74,7 +74,6 @@ if __name__ == '__main__':
             loss = criterion(outputs, target.contiguous().view(-1))
             loss.backward()
             print('batch:', '%04d' % i, 'cost =', '{:.6f}'.format(loss))
-            i += 1
             Loss += loss
         print('epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(Loss / enc_inputs.shape[0]))
         optimizer.step()
