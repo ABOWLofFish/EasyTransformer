@@ -5,14 +5,15 @@ class Vocab:
         '''根据出现频率排序'''
         tokens = [token for item in sentences for token in re.split(r" |\n", item) if token != '']
         counter = collections.Counter(tokens)
-        self.token_freq = sorted(counter.items(), key=lambda x: x[1], reverse=True)
+        token_freq = sorted(counter.items(), key=lambda x: x[1], reverse=True)
 
         '''<unk>索引为0,<pad>索引1'''
         self.unk = 0
         self.pad = 1
+        tokens = ['<unk>', '<pad>']
         if reserved_tokens is not None:
-            tokens = ['<unk>', '<pad>']+reserved_tokens
-        tokens += [tur[0] for tur in self.token_freq if tur[1] >= min_freq and tur[0] not in tokens]
+            tokens += reserved_tokens
+        tokens += [tur[0] for tur in token_freq if tur[1] >= min_freq]
         self.unique_tokens = dict()
         self.reversed_unique_tokens = dict()
 
