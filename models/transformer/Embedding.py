@@ -10,7 +10,7 @@ class PositionalEmbedding(nn.Module):
 
     output size : [batch_size,max_len,embedding_size]
 
-    PE = sin((pos*d_model)/1e^{5+2i}) /cos
+    PE = sin((pos/1e^{5+(2i/d_model)}) /cos
         可以推出三角函数内部共同计算部分
         common_div  ==> pos * e^{-(2i/d_model * log(1e5)}
                     ==> torch.exp(-log(10000.0)/d_model * pos||pos-1)

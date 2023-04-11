@@ -5,10 +5,12 @@ import torch.optim as optim
 import numpy as np
 import data_load.load_datas
 from models.transformer.EasyTransformer import EasyTransformer
+from evalutaion import bleu
 
 
 def set_vocab_size():
     return len(src_vocab), len(tgt_vocab)
+
 
 def make_batch(corpus: list, batch_size: int):
     inputs, outputs, tgt = shuffle_and_padding(sentence=corpus)
@@ -25,7 +27,8 @@ def make_batch(corpus: list, batch_size: int):
         tgt_batch.append(tgt[idx])
         # del batch from idx_list to avoid duplicate choice
         idx_list = np.setdiff1d(idx_list, idx)
-    enc_inputs, dec_inputs, target = torch.LongTensor(input_batch), torch.LongTensor(output_batch), torch.LongTensor(tgt_batch)
+    enc_inputs, dec_inputs, target = torch.LongTensor(input_batch), torch.LongTensor(output_batch), torch.LongTensor(
+        tgt_batch)
     # append final batch with size < batch_size
     # input_batch.append(inputs[idx_list])
     # output_batch.append(outputs[idx_list])
@@ -34,6 +37,7 @@ def make_batch(corpus: list, batch_size: int):
     # dec_inputs = torch.cat((dec_inputs, torch.unsqueeze(torch.LongTensor(outputs[idx_list]), dim=0)), dim=1)
     # target = torch.cat((target, torch.unsqueeze(torch.LongTensor(tgt[idx_list]), dim=0)), dim=1)
     return enc_inputs, dec_inputs, target
+
 
 def shuffle_and_padding(sentence):
     maxLen = 40
@@ -46,34 +50,50 @@ def shuffle_and_padding(sentence):
         target_batch.append(tgt_vocab.to_idx(words=sentence[i][2].split(" "), maxLen=maxLen))
     return np.array(enc_input_batch), np.array(dec_input_batch), np.array(target_batch)
 
+
 def set_seed(seed: int):
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
 
+
 if __name__ == '__main__':
     set_seed(0)
-    src_vocab, tgt_vocab, sentences = data_load.load_datas.load_corpus("D:\\PycharmProjects\\transformerdemo\\datas\\data\\spa-eng\\")    # src_path, tgt_path
+    src_vocab, tgt_vocab, train, dev, test = data_load.load_datas.load_corpus(
+        "D:\\PycharmProjects\\transformerdemo\\datas\\data\\spa-eng\\")  # src_path, tgt_path
 
     ''' def model,criterion,optimizer '''
     model = EasyTransformer()
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.0004)
 
     ''' begin training '''
     for epoch in range(30):
         optimizer.zero_grad()
         print("making batch...")
         # [batch_size, ]
-        enc_inputs, dec_inputs, target_batch = make_batch(sentences, 64)    # pack_batch
+        enc_inputs, dec_inputs, target_batch = make_batch(train, 64)  # pack_batch
         print("start training")
         Loss = 0
         for i, (enc_input, dec_input, target) in enumerate(zip(enc_inputs, dec_inputs, target_batch)):
-            # print("shape: ", enc_input.shape, dec_input.shape, target.shape)
             outputs = model(enc_input, dec_input).view(-1, len(tgt_vocab))
             loss = criterion(outputs, target.contiguous().view(-1))
             loss.backward()
             print('batch:', '%04d' % i, 'cost =', '{:.6f}'.format(loss))
             Loss += loss
         print('epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(Loss / enc_inputs.shape[0]))
+
+        # '''evaluate on dev set'''
+        # enc_inputs, dec_inputs, target_batch = make_batch(dev, 64)  # pack_batch
+        # print("evaluate on dev set")
+        # for (enc_input, dec_input, target) in zip(enc_inputs, dec_inputs, target_batch):
+        #     outputs = model(enc_input, dec_input)  # [batch_size, seq_len, tgt_vocab_size]
+        #     outputs = torch.max(outputs, dim=-1)  # indices.shape = [batch_size, seq_len]
+        #     candidates = []
+        #     for line in range(outputs.indices.shape[0]):
+        #         print(candidates[0,:].type)
+        #         candidates.append(src_vocab.to_tokens(outputs.indices[line, :]))
+        #     score = bleu.corpus_bleu(target, candidates)
+        #     print("BLEU:", '{:.6f}'.format(score))
+
         optimizer.step()

@@ -20,8 +20,6 @@ class Encoder(nn.Module):
         self.layers = nn.ModuleList([EncoderLayer() for layer in range(Nx)])
 
     def forward(self, enc_input):
-        nn.init.normal_(self.src_emb.weight, mean=0, std=embedding_size ** -0.5)
-        nn.init.constant_(self.src_emb.weight[1], 0)
         raw = self.src_emb(enc_input)
         inputs = self.pos_embedding.forward(raw)
         for layer in self.layers:
@@ -38,22 +36,20 @@ class Decoder(nn.Module):
     """
     def __init__(self):
         super(Decoder, self).__init__()
-        self.tgt_emb_weight = nn.Parameter(torch.empty(tgt_vocab_size, embedding_size))     # Weight Tying
+        self.tgt_emb = nn.Embedding(tgt_vocab_size, embedding_size, padding_idx=1)
         self.pos_embedding = PositionalEmbedding()
         self.encoder_out = Encoder()
         self.layers = nn.ModuleList([DecoderLayer() for layer in range(Nx)])
 
     def forward(self, dec_input, enc_to_dec):
-        nn.init.normal_(self.tgt_emb_weight, mean=0, std=embedding_size ** -0.5)
-        nn.init.constant_(self.tgt_emb_weight[1], 0)
-        emb = nn.Embedding(tgt_vocab_size, embedding_size, padding_idx=1, _weight=self.tgt_emb_weight)
+        emb = nn.Embedding(tgt_vocab_size, embedding_size, padding_idx=1)
         raw = emb(dec_input)
         inputs = self.pos_embedding.forward(raw)
         for layer in self.layers:
             output = layer.forward(inputs, enc_to_dec)
             inputs = output
         projection = torch.nn.Linear(embedding_size, tgt_vocab_size)
-        projection.weight = nn.Parameter(self.tgt_emb_weight)    # Weight Tying
+        projection.weight = self.tgt_emb.weight    # Weight Tying
         return projection(inputs)
 
 
@@ -71,7 +67,8 @@ class EasyTransformer(nn.Module):
     def forward(self, enc_input, dec_input):
         # [batch_size, seq_len, embedding]
         enc_to_dec = self.encoder.forward(enc_input)
+        # print("enc_to_dec: ",enc_to_dec.shape)
         dec_out = self.decoder.forward(dec_input, enc_to_dec)
-
-        return torch.softmax(dec_out.view(-1, tgt_vocab_size), 1)
+        # print("dec_out: ",dec_out.shape)
+        return torch.softmax(dec_out, dim=-1)
 

@@ -14,7 +14,7 @@ class MultiHead_Attention(nn.Module):
         -> linear
         ==>[output]
 
-    *equ size:[batch_size, n_heads, seq,dq]
+    *equ size:[batch_size, n_heads, seq, dq]
     concat size :[batch_size, seq, dq]
     output size :[batch_size, seq, embedding_size]
     """
@@ -30,7 +30,7 @@ class MultiHead_Attention(nn.Module):
         # embedding size : [batch_size,seq_len,embedding_size]
         batch_size = inputs.size()[0]
 
-        #   计算多头的Qi Ki Vi矩阵 [batch_size, n_heads, seq, d_i]
+        # 计算多头的Qi Ki Vi矩阵 [batch_size, n_heads, seq, d_i]
         q = self.W_Q(inputs).view(batch_size, -1, n_heads, d_q).transpose(1, 2)
         if enc_to_dec is not None:
             k = self.W_K(enc_to_dec).view(batch_size, -1, n_heads, d_k).transpose(1, 2)

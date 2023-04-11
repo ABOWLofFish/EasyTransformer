@@ -20,7 +20,7 @@ class Vocab:
         for i in range(len(tokens)):
             self.unique_tokens[tokens[i]] = i
         self.reversed_unique_tokens = self.unique_tokens.__reversed__()
-        # print(len(self.unique_tokens))
+        print("vocab size:",len(self.unique_tokens))
 
     def __len__(self):
         return len(self.unique_tokens)
